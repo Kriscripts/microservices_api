@@ -22,7 +22,12 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 echo 'Running unit tests...'
-                // Add test commands, e.g., npm test
+                 sh '''
+        cd auth-service && npm install && npm test
+        cd ../product-service && npm install && npm test
+        cd ../order-service && npm install && npm test
+        cd ../payment-service && npm install && npm test
+        '''
             }
         }
         stage('Push to Docker Hub') {
