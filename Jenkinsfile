@@ -14,29 +14,39 @@ pipeline {
                 script {
                     def services = ['auth-service', 'product-service', 'order-service', 'payment-service']
                     for (service in services) {
-                        sh "docker build -t ${DOCKER_CREDENTIALS_USR}/${service}:latest ./${service}"
+                        sh """
+                        echo "Building Docker image for ${service}..."
+                        docker build -t ${DOCKER_CREDENTIALS_USR}/${service}:latest ./${service}
+                        """
                     }
                 }
             }
         }
         stage('Run Unit Tests') {
             steps {
-                echo 'Running unit tests...'
-                 sh '''
-        cd auth-service && npm install && npm test
-        cd ../product-service && npm install && npm test
-        cd ../order-service && npm install && npm test
-        cd ../payment-service && npm install && npm test
-        '''
+                script {
+                    def services = ['auth-service', 'product-service', 'order-service', 'payment-service']
+                    for (service in services) {
+                        sh """
+                        echo "Running unit tests for ${service}..."
+                        cd ${service} && npm install && npm test || { echo "Tests failed for ${service}"; exit 1; }
+                        cd ..
+                        """
+                    }
+                }
             }
         }
         stage('Push to Docker Hub') {
             steps {
                 script {
+                    // Login to Docker Hub once before pushing the images
+                    sh "docker login -u ${DOCKER_CREDENTIALS_USR} -p ${DOCKER_CREDENTIALS_PSW}"
                     def services = ['auth-service', 'product-service', 'order-service', 'payment-service']
                     for (service in services) {
-                        sh "docker login -u ${DOCKER_CREDENTIALS_USR} -p ${DOCKER_CREDENTIALS_PSW}"
-                        sh "docker push ${DOCKER_CREDENTIALS_USR}/${service}:latest"
+                        sh """
+                        echo "Pushing ${service} to Docker Hub..."
+                        docker push ${DOCKER_CREDENTIALS_USR}/${service}:latest
+                        """
                     }
                 }
             }
